@@ -1,4 +1,5 @@
 path = require 'path'
+GitHubFile = require './github-file'
 
 {Emitter} = require 'atom'
 _ = require 'underscore-plus'
@@ -25,7 +26,8 @@ class TodoModel
       when 'Type', 'Project' then " __#{value}__"
       when 'Range', 'Line' then " _:#{value}_"
       when 'Regex' then " _'#{value}'_"
-      when 'Path', 'File' then " [#{value}](#{value})"
+      when 'Path', 'File' then " [Link](#{value})"
+      # when 'Path', 'File' then " [#{value}](#{value})"
       when 'Tags', 'Id' then " _#{value}_"
 
   getMarkdownArray: (keys) ->
@@ -85,10 +87,14 @@ class TodoModel
     else
       match.range = match.position.toString()
 
+    match.line = (parseInt(match.range.split(',')[0]) + 1).toString()
+
     # Extract paths and project
     relativePath = atom.project.relativizePath(match.loc)
     relativePath[0] ?= ''
-    match.path = relativePath[1] or ''
+    # match.path = relativePath[1] or ''
+    gf = new GitHubFile(match.loc)
+    match.path = gf.blobUrl() + '#L' + match.line
 
     if (match.loc and loc = path.basename(match.loc)) isnt 'undefined'
       match.file = loc
@@ -101,7 +107,6 @@ class TodoModel
       match.project = ''
 
     match.text = matchText or "No details"
-    match.line = (parseInt(match.range.split(',')[0]) + 1).toString()
     match.regex = match.regex.replace('${TODOS}', match.type)
     match.id = match.id or ''
 
